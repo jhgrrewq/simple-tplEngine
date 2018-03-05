@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+</head>
+<body>
+<div class="app"></div>
+<script src="./tplEngine/tpl.js"></script>
+
+<script id='template' type='javascript/template'>
+<ul>
+    <% for(var i in obj) { %>
+        <li class="<%= obj[i].status %>"><%= obj[i].text %></li>
+    <%  } %>
+</ul>
+</script>
+
+<script>
+    var text = document.getElementById('template').innerHTML
+    var items = [
+        { text: 'text1' ,status:'done' },
+        { text: 'text2' ,status:'pending' },
+        { text: 'text3' ,status:'pending' },
+        { text: 'text4' ,status:'processing' }
+    ];
+    var html = template(text, items)
+    document.querySelector('.app').innerHTML = html
+</script>
+</body>
+</html>
