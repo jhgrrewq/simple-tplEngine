@@ -22,7 +22,7 @@
         { text: 'text3' ,status:'pending' },
         { text: 'text4' ,status:'processing' }
     ];
-    var html = template(text, items)
+    var html = template(text, {obj: items})
     document.querySelector('.app').innerHTML = html
 </script>
 </body>
