@@ -1,3 +1,9 @@
+---
+title: js 模板引擎原理以及实现
+tag: 
+	- 模板引擎
+---
+
 > js模板引擎减少了html的书写，通过js语句（如循环等）能更方便操作数据，实现数据和视图的分离，更易于维护
 
 <!--more-->
@@ -113,8 +119,7 @@ var matcher = /<%=([\s\S]+?)%>|<%([\s\S]+?)%>|$/g // 需要非贪婪匹配
 // data 渲染的数据
 function template(text, data) {
     var index = 0 // 记录当前扫描到了哪里
-    var function_string = "var temp = '';"
-    function_string += "temp += '"
+    var function_string = ''
     text.replace(matcher, function(match, interpolate, evaluate, offset) {
         // match 匹配模式的字符串，
         // interpolate 为第1个子表达式匹配的字符串， 即 <%= %> 中的变量
@@ -132,10 +137,10 @@ function template(text, data) {
         // 递增index，跳出interpolate或evaluate
         index = offset + match.length
     })
-    // 最后代码是返回temp 也就是返回拼接好的字符串
-    function_string += "';return temp;"
+    // 最后拼接函数字符串，返回temp
+    var tpl = "var temp = '';temp += '" + function_string + "';return temp;";
     // 通过function_string 生成函数 传入数据渲染
-    var render = new Function('obj', function_string)
+    var render = new Function('obj', tpl);
     return render(data)
 }
 ~~~
@@ -175,7 +180,7 @@ index.html中调用
 </html>
 ~~~
 
-#### 2 bug修复
+#### 2 转义
 
 需要增加对模板中的一些特殊字符进行转义, 如\n \r \t
 
@@ -202,8 +207,7 @@ var escapes = {
 // data 渲染的数据
 function template(text, data) {
     var index = 0 // 记录当前扫描到了哪里
-    var function_string = "var temp = '';"
-    function_string += "temp += '"
+    var function_string = ''
     text.replace(matcher, function(match, interpolate, evaluate, offset) {
         // match 匹配模式的字符串，
         // interpolate 为第1个子表达式匹配的字符串， 即 <%= %> 中的变量
@@ -222,10 +226,100 @@ function template(text, data) {
         // 递增index，跳出interpolate或evaluate
         index = offset + match.length
     })
-    // 最后代码是返回temp 也就是返回拼接好的字符串
-    function_string += "';return temp;"
-    // 利用function_string 生成函数
-    var render = new Function('obj', function_string)
+    // 最后拼接函数字符串，返回temp
+    var tpl = "var temp = '';temp += '" + function_string + "';return temp;";
+    // 通过function_string 生成函数 传入数据渲染
+    var render = new Function('obj', tpl);
     return render(data)
 }
 ~~~
+
+## 3 简化
+
+之前是逐个正则匹配对匹配结果分情况进行处理，处理结果不断拼接字符串，现在对模板字符串分别对转义、变量、可执行代码进行三轮替换，思路更简洁
+
+~~~javascript
+var matcher = /<%=([\s\S]+?)%>|<%([\s\S]+?)%>|$/g
+
+// 对模板中的特殊字符增加转义处理
+var escaper = /\\|'|\r|\n|\t|\u2028|\u2029/g;
+var escapes = {
+    "'":      "'",
+    '\\':     '\\',
+    '\r':     'r',
+    '\n':     'n',
+    '\t':     't',
+    '\u2028': 'u2028',
+    '\u2029': 'u2029'
+  };
+
+// text 传入的模板
+// data 渲染的数据
+function template(text, data) {
+    // 首先进行转义
+    var function_string = text.replace(escaper, function(match) { return '\\' + escapes[match]; })
+        .replace(/<%=([\s\S]+?)%>/g, function(match, code) {
+            // 变量输出
+            return "' + " + code + " + '"
+        })
+        .replace(/<%([\s\S]+?)%>/g, function(match, code) {
+            // 可执行代码拼接
+            return "';" + code + "temp += '"
+        })
+
+    var tpl = "var temp = '';temp += '" + function_string + "'return temp;";
+    // 生成函数 传入数据渲染
+    var render = new Function('obj', tpl);
+    return render(data)
+}
+~~~
+
+## 4 with 的应用
+
+with(object instance) {statement} **用来引用某个特定对象中已有的属性，但是不能用来给对象添加属性**，要给对象创建新的属性，必须明确地引用该对象
+
+with 方法调用时，内部的变量和方法使用会检查是否是**本地**的方法或者变量，如果不是则会检查是否是传入 with 方法的 **参数对象**，看是否是该对象的属性或者方法。**with 语句是运行缓慢的代码块，大多数情况下应该避免使用**
+
+```js
+// 相当于引用 document
+// document.write('hello')
+with(document) {
+    write('hello')
+
+    // var arg = propName
+}
+```
+
+对之前的方法进行改造，遇到普通字符串就直接输出，变量 code 的值则是 obj[code]
+
+```js
+var matcher = /<%=([\s\S]+?)%>|<%([\s\S]+?)%>|$/g; // 需要非贪婪匹配
+
+// 对模板中的特殊字符增加转义处理
+var escaper = /\\|'|\r|\n|\t|\u2028|\u2029/g;
+
+var escapes = {
+    "'":      "'",
+    '\\':     '\\',
+    '\r':     'r',
+    '\n':     'n',
+    '\t':     't',
+    '\u2028': 'u2028',
+    '\u2029': 'u2029'
+}
+
+function template(text, data) {
+    var function_string = text.replace(escaper, function(match) { return '\\' + escapes[match]; })
+        .replace(/<%=([\s\S]+?)%>/g, function(match, code) {
+            return "' + " + code + " + '" 
+        })
+        .replace(/<%([\s\S]+?)%>/g, function(match, code) {
+            return "';" + code + "temp += '" 
+        })
+
+    var tpl = "var temp = '';\nwith(obj || {}) {\ntemp += '" + function_string + "'\n};\nreturn temp;";
+    // 生成函数 传入数据渲染
+    var render = new Function('obj', tpl);
+    return render(data)
+}
+```
