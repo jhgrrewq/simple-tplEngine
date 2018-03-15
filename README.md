@@ -1,9 +1,3 @@
----
-title: js 模板引擎原理以及实现
-tag: 
-	- 模板引擎
----
-
 > js模板引擎减少了html的书写，通过js语句（如循环等）能更方便操作数据，实现数据和视图的分离，更易于维护
 
 <!--more-->
@@ -311,10 +305,10 @@ var escapes = {
 function template(text, data) {
     var function_string = text.replace(escaper, function(match) { return '\\' + escapes[match]; })
         .replace(/<%=([\s\S]+?)%>/g, function(match, code) {
-            return "' + " + code + " + '" 
+            return "' + " + code + " + '"
         })
         .replace(/<%([\s\S]+?)%>/g, function(match, code) {
-            return "';" + code + "temp += '" 
+            return "';" + code + "temp += '"
         })
 
     var tpl = "var temp = '';\nwith(obj || {}) {\ntemp += '" + function_string + "'\n};\nreturn temp;";
