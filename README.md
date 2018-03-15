@@ -312,7 +312,7 @@ index.html中调用
            class: "text",
            text: "number3"
        }]
-    console.log(template(text, {items: items}))
+    console.log(template(text, {obj: items}))
 </script>
 </body>
 </html>
