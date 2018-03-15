@@ -139,41 +139,6 @@ function template(text, data) {
 }
 ~~~
 
-index.html中调用
-
-~~~javascript
-<!DOCTYPE html>
-<html lang="en">
-<head>
-</head>
-<body>
-<script src="./tpl.js"></script>
-<script id='template' type='javascript/template'>
-<ul>
-    <% for(var i in obj){ %>
-    <li class="<%= obj[i].class %>"><%= obj[i].text %></li>
-    <% } %>
-</ul>
-</script>
-<script>
-    var text = document.getElementById('template').innerHTML
-    var items = [{
-           class: "text",
-           text: "number1"
-       }, {
-           class: "text",
-           text: "number2"
-       },
-       {
-           class: "text",
-           text: "number3"
-       }]
-    console.log(template(text, items))
-</script>
-</body>
-</html>
-~~~
-
 #### 2 转义
 
 需要增加对模板中的一些特殊字符进行转义, 如\n \r \t
@@ -317,3 +282,38 @@ function template(text, data) {
     return render(data)
 }
 ```
+
+index.html中调用
+
+~~~javascript
+<!DOCTYPE html>
+<html lang="en">
+<head>
+</head>
+<body>
+<script src="./tpl.js"></script>
+<script id='template' type='javascript/template'>
+<ul>
+    <% for(var i in obj){ %>
+    <li class="<%= obj[i].class %>"><%= obj[i].text %></li>
+    <% } %>
+</ul>
+</script>
+<script>
+    var text = document.getElementById('template').innerHTML
+    var items = [{
+           class: "text",
+           text: "number1"
+       }, {
+           class: "text",
+           text: "number2"
+       },
+       {
+           class: "text",
+           text: "number3"
+       }]
+    console.log(template(text, {items: items}))
+</script>
+</body>
+</html>
+~~~
